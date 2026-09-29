@@ -127,3 +127,26 @@ fn test_initialize_cannot_be_called_twice() {
     let attacker = Address::generate(&env);
     router_client.initialize(&attacker);
 }
+
+#[test]
+fn test_admin_and_approved_pools_live_in_instance_storage() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let router_id = env.register_contract(None, LiquidityRouter);
+    let router_client = LiquidityRouterClient::new(&env, &router_id);
+
+    let admin = Address::generate(&env);
+    router_client.initialize(&admin);
+
+    // Admin and the approved-pools allowlist are config singletons and must be
+    // kept in instance() storage so their TTL is bumped with every contract
+    // call, rather than in persistent() storage where they could be archived.
+    let instance = env.as_contract(&router_id, || env.storage().instance());
+    assert!(instance.has(&DataKey::Admin));
+    assert!(instance.has(&DataKey::ApprovedPools));
+
+    let persistent = env.as_contract(&router_id, || env.storage().persistent());
+    assert!(!persistent.has(&DataKey::Admin));
+    assert!(!persistent.has(&DataKey::ApprovedPools));
+}
