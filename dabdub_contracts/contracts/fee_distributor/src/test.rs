@@ -111,3 +111,57 @@ fn test_update_addresses() {
     assert_eq!(s.token.balance(&s.treasury), 0);
     assert_eq!(s.token.balance(&s.lp), 0);
 }
+
+#[test]
+#[should_panic(expected = "treasury and lp_address must differ")]
+fn test_constructor_rejects_treasury_equal_lp() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let shared = Address::generate(&env);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin.clone());
+
+    env.register(
+        FeeDistributorContract,
+        (&admin, &shared, &shared, 5_000i128, &token_id.address()),
+    );
+}
+
+#[test]
+#[should_panic(expected = "admin must differ from treasury")]
+fn test_constructor_rejects_admin_equal_treasury() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let shared = Address::generate(&env);
+    let lp = Address::generate(&env);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin.clone());
+
+    env.register(
+        FeeDistributorContract,
+        (&shared, &shared, &lp, 5_000i128, &token_id.address()),
+    );
+}
+
+#[test]
+#[should_panic(expected = "admin must differ from lp_address")]
+fn test_constructor_rejects_admin_equal_lp() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let treasury = Address::generate(&env);
+    let shared = Address::generate(&env);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin.clone());
+
+    env.register(
+        FeeDistributorContract,
+        (&shared, &treasury, &shared, 5_000i128, &token_id.address()),
+    );
+}
