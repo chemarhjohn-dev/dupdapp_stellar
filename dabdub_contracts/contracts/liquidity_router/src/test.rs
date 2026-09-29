@@ -93,3 +93,37 @@ fn test_borderline_depth() {
     let route = router_client.check_and_route(&pool_address, &10i128);
     assert_eq!(route, Route::StellarClassicDEX);
 }
+
+#[test]
+fn test_initialize_sets_admin_and_requires_auth() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let router_id = env.register_contract(None, LiquidityRouter);
+    let router_client = LiquidityRouterClient::new(&env, &router_id);
+
+    let admin = Address::generate(&env);
+    router_client.initialize(&admin);
+
+    // Admin is recorded and the allowlist starts empty.
+    assert_eq!(router_client.get_admin(), admin);
+    assert_eq!(router_client.get_approved_pools().len(), 0);
+}
+
+#[test]
+#[should_panic(expected = "already initialized")]
+fn test_initialize_cannot_be_called_twice() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let router_id = env.register_contract(None, LiquidityRouter);
+    let router_client = LiquidityRouterClient::new(&env, &router_id);
+
+    let admin = Address::generate(&env);
+    router_client.initialize(&admin);
+
+    // A second call (e.g. by an attacker) must be rejected and must not
+    // overwrite the admin or wipe the approved-pools allowlist.
+    let attacker = Address::generate(&env);
+    router_client.initialize(&attacker);
+}

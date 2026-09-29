@@ -38,7 +38,14 @@ pub struct LiquidityRouter;
 #[contractimpl]
 impl LiquidityRouter {
     // Issue #1025: Constructor to initialize admin
+    // Issue #1079: Require auth and guard against re-initialization
     pub fn initialize(env: Env, admin: Address) {
+        admin.require_auth();
+
+        if env.storage().persistent().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
+
         env.storage().persistent().set(&DataKey::Admin, &admin);
         let pools: Vec<Address> = Vec::new(&env);
         env.storage().persistent().set(&DataKey::ApprovedPools, &pools);
